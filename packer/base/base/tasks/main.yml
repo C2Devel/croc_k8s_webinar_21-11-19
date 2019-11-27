@@ -1,0 +1,81 @@
+---
+- name: Add Docker repo
+  yum_repository:
+    baseurl: https://download.docker.com/linux/centos/7/$basearch/stable
+    enabled: true
+    gpgcheck: true
+    gpgkey: https://download.docker.com/linux/centos/gpg
+    name: docker
+    description: Docker CE Stable - $basearch
+
+- name: Add Kubernetes repo
+  yum_repository:
+    baseurl: https://packages.cloud.google.com/yum/repos/kubernetes-el7-x86_64
+    enabled: true
+    gpgcheck: true
+    gpgkey: "https://packages.cloud.google.com/yum/doc/yum-key.gpg https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg"
+    repo_gpgcheck: true
+    name: kubernetes
+    description: Kubernetes repo
+
+- name: Install packages
+  yum:
+    name: "{{ packages }}"
+    state: installed
+    allow_downgrade: true
+
+- name: Ensure Docker configuration directory exists
+  file:
+    path: /etc/docker
+    state: directory
+    owner: root
+    group: root
+    mode: 0755
+
+- name: Configure Docker
+  template:
+    src: daemon.json.j2
+    dest: /etc/docker/daemon.json
+    owner: root
+    group: root
+    mode: 0644
+
+- name: Persist br_netfilter module load
+  template:
+    src: br_netfilter.conf.j2
+    dest: /etc/modules-load.d/br_netfilter.conf
+    owner: root
+    group: root
+    mode: 0644
+
+- name: Enable bridge-nf-call tables
+  sysctl:
+    name: "{{ item }}"
+    state: present
+    sysctl_file: /etc/sysctl.d/k8s.conf
+    value: "1"
+    reload: false
+  with_items:
+    - net.bridge.bridge-nf-call-iptables
+    - net.bridge.bridge-nf-call-arptables
+    - net.bridge.bridge-nf-call-ip6tables
+
+- name: Enable Docker and Kubelet
+  service:
+    name: "{{ item }}"
+    enabled: true
+  with_items:
+    - docker
+    - kubelet
+
+- name: Start Docker to pre pull Kubernetes images
+  service:
+    name: docker
+    state: started
+
+# Kubeadm inline command should be used to pull images to keep their versions
+# in sync with main kubeadm version.
+- name: Pull required Kubernetes images
+  command: "kubeadm config images pull --kubernetes-version={{ kubernetes_version }}"
+  tags:
+  - skip_ansible_lint

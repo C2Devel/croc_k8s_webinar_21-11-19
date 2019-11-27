@@ -1,0 +1,6 @@
+---
+packages:
+  - docker-ce-{{ docker_version }}
+  - kubelet-{{ kubernetes_version }}
+  - kubeadm-{{ kubernetes_version }}
+  - kubectl-{{ kubernetes_version }}

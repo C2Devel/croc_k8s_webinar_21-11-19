@@ -1,0 +1,58 @@
+{
+  "variables": {
+    "source_ami_name": "{{env `SOURCE_AMI_NAME`}}",
+    "ami_name": "{{env `AMI_NAME`}}",
+    "instance_type": "{{env `INSTANCE_TYPE`}}",
+    "kubernetes_version": "{{env `KUBERNETES_VERSION`}}",
+    "docker_version": "{{env `DOCKER_VERSION`}}",
+    "subnet_id": "",
+    "availability_zone": ""
+  },
+  "builders": [
+    {
+      "type": "amazon-ebs",
+      "region": "croc",
+      "skip_region_validation": true,
+      "custom_endpoint_ec2": "https://api.cloud.croc.ru",
+      "source_ami": "",
+      "source_ami_filter": {
+        "filters": {
+          "name": "{{user `source_ami_name`}}",
+          "state": "available",
+          "virtualization-type": "kvm-virtio"
+        },
+        "owners": [
+          "templates@cloud.croc.ru"
+        ],
+        "most_recent": true
+      },
+      "instance_type": "{{user `instance_type`}}",
+      "launch_block_device_mappings": [
+        {
+          "device_name": "disk1",
+          "volume_type": "io1",
+          "volume_size": "8",
+          "iops": "1000",
+          "delete_on_termination": "true"
+        }
+      ],
+      "availability_zone": "{{user `availability_zone`}}",
+      "subnet_id": "{{user `subnet_id`}}",
+      "associate_public_ip_address": true,
+      "ssh_username": "ec2-user",
+      "ami_name": "{{user `ami_name`}}"
+    }
+  ],
+  "provisioners": [
+    {
+      "type": "ansible",
+      "playbook_file": "playbook.yml",
+      "extra_arguments": [
+        "--extra-vars",
+        "kubernetes_version={{user `kubernetes_version`}}",
+        "--extra-vars",
+        "docker_version={{user `docker_version`}}"
+      ]
+    }
+  ]
+}

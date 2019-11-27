@@ -1,0 +1,7 @@
+{
+    "source_ami_name": "CentOS 7.5 [Cloud image]",
+    "ami_name": "centos-k8s-base",
+    "instance_type": "m3.2small",
+    "kubernetes_version": "1.16.1",
+    "docker_version": "18.09.5"
+}
